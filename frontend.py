@@ -10,14 +10,6 @@ from app import app as flask_app  # Importer ton Flask existant
 # --- Configuration Streamlit ---
 st.set_page_config(page_title="Front Risque Crédit", layout="wide")
 
-# --- Lancer le serveur Flask dans un thread ---
-def run_flask():
-    flask_app.run(host="0.0.0.0", port=5000, debug=False, use_reloader=False)
-
-flask_thread = threading.Thread(target=run_flask, daemon=True)
-flask_thread.start()
-time.sleep(2)  # donner le temps au serveur Flask de démarrer
-
 # --- Titre de l'application ---
 st.title("Analyse de risque de défaut de crédit")
 
