@@ -1,23 +1,22 @@
 import streamlit as st
 import requests
-import subprocess
+import threading
 import time
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-import atexit
+from app import app as flask_app  # Importer ton Flask existant
 
-# --- Configuration Streamlit (toujours en premier) ---
+# --- Configuration Streamlit ---
 st.set_page_config(page_title="Front Risque Crédit", layout="wide")
 
-# --- Lancer le serveur Flask en arrière-plan ---
-FLASK_CMD = ["python", "app.py"]
-flask_process = None
-try:
-    flask_process = subprocess.Popen(FLASK_CMD)
-    time.sleep(2)  # attendre que le serveur démarre
-except Exception as e:
-    st.warning(f"Impossible de démarrer Flask automatiquement : {e}")
+# --- Lancer le serveur Flask dans un thread ---
+def run_flask():
+    flask_app.run(host="0.0.0.0", port=5000, debug=False, use_reloader=False)
+
+flask_thread = threading.Thread(target=run_flask, daemon=True)
+flask_thread.start()
+time.sleep(2)  # donner le temps au serveur Flask de démarrer
 
 # --- Titre de l'application ---
 st.title("Analyse de risque de défaut de crédit")
@@ -29,7 +28,7 @@ if st.button("Analyser") and client_id:
     API_URL = f"http://127.0.0.1:5000/predict_default?client_id={client_id}"
     
     try:
-        response = requests.get(API_URL)
+        response = requests.get(API_URL, timeout=60)  # timeout pour éviter blocage
         if response.status_code != 200:
             st.error(f"Erreur API : {response.json().get('error')}")
         else:
@@ -103,12 +102,8 @@ if st.button("Analyser") and client_id:
             st.plotly_chart(fig_products, use_container_width=True)
             
     except requests.exceptions.ConnectionError:
-        st.error("Impossible de se connecter à l'API Flask. Vérifiez que app.py tourne.")
+        st.error("Impossible de se connecter à l'API Flask. Vérifiez que Flask est bien lancé.")
+    except requests.exceptions.Timeout:
+        st.error("Le serveur Databricks met trop de temps à répondre.")
     except Exception as e:
         st.error(f"Erreur inattendue : {str(e)}")
-
-# --- Arrêter Flask à la fermeture de Streamlit ---
-def stop_flask():
-    if flask_process:
-        flask_process.terminate()
-atexit.register(stop_flask)
