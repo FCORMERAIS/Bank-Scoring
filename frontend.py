@@ -5,7 +5,6 @@ import time
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-from app import app as flask_app  # Importer ton Flask existant
 
 # --- Configuration Streamlit ---
 st.set_page_config(page_title="Front Risque Crédit", layout="wide")
